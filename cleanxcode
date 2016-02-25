@@ -1,0 +1,50 @@
+#!/bin/bash
+
+if [ ! -x /usr/local/bin/pick ]; then
+  echo "Pick tool is not installed"
+  echo "do:"
+  echo "    brew tap thoughtbot/formulae"
+  echo "    brew install pick"
+  exit
+fi
+
+if [ "$TERM" == "ansi" ]; then
+  echo "Please, set your TERM to xterm or something better"
+  exit
+fi
+
+INITIAL=$( df -h | grep "/$" | tr -s ' '| cut -d' ' -f4 )
+
+function pickremove() {
+  cd "$1"
+  FINISHER=""
+  while [ "$FINISHER" != "-DONE" ]; do
+    REMOVE=$( (echo "-DONE: $2"; ls) | pick )
+    FINISHER=$( echo $REMOVE | cut -d':' -f1 )
+    if [ "$FINISHER" != "-DONE" ]; then
+      echo "Removing $REMOVE"
+      rm -rif "$REMOVE"
+    fi
+  done
+  cd -
+}
+
+if [ $(ls -A $HOME/Library/Caches/com.apple.dt.Xcode/Downloads/*.dmg) ]; then 
+  pickremove "$HOME/Library/Caches/com.apple.dt.Xcode/Downloads" "Clean docset downloads"
+fi
+
+pickremove "$HOME/Library/Developer/Xcode/iOS DeviceSupport" "Cleaning stale XCode plugged devices symbols"
+
+echo "Cleaning DerivedData"
+pickremove "$HOME/Library/Developer/Xcode/DerivedData" "Cleaning XCode DerivedData of intermediate compilation results"
+
+for APPCODE in `ls -d $HOME/Library/Caches/AppCode*/DerivedData`; do
+  VERSION=$(echo $APPCODE | sed 's%.*AppCode%AppCode%' )
+  pickremove "$APPCODE" "Cleaning $VERSION of intermediate compilation results"
+done
+
+echo "Cleaning stale CoreSimulator devices"
+xcrun simctl list |grep "unavailable" | grep -oh '[A-Z0-9]\{8\}-[A-Z0-9]\{4\}-[A-Z0-9]\{4\}-[A-Z0-9]\{4\}-[A-Z0-9]\{12\}' | xargs -I{} xcrun simctl erase {}
+
+FINAL=$( df -h | grep "/$" | tr -s ' '| cut -d' ' -f4 )
+echo "Done cleaning: From $INITIAL free to $FINAL free"
