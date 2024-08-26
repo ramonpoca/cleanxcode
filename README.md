@@ -1,3 +1,5 @@
+# WARNING: This script IS SEVERELY OUTDATED. Please do not use. Archiving for reference only.
+
 # cleanxcode
 A simple interactive terminal script to clean up Xcode DerivedData, stale simulators, etc
 
